@@ -1,0 +1,746 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="//cdn.muicss.com/mui-latest/css/mui.min.css" rel="stylesheet" type="text/css" />
+
+    <script src="//cdn.muicss.com/mui-latest/js/mui.min.js"></script>
+
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/axios/0.17.0/axios.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.6.5/angular.min.js"></script>
+
+    <!-- load MUI -->
+    <link href="//cdn.muicss.com/mui-0.9.39/css/mui.min.css" rel="stylesheet" type="text/css" />
+    <script src="//cdn.muicss.com/mui-0.9.39/angular/mui-angular.min.js"></script>
+    <link href="static/style.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://cdn.rawgit.com/BioPhoton/angular1-star-rating/v1.2.4/dist/index.js"></script>
+    <script src="https://rawgit.com/rzajac/angularjs-slider/master/dist/rzslider.js"></script>
+    <link rel="stylesheet" href="https://rawgit.com/rzajac/angularjs-slider/master/dist/rzslider.css" />
+    <script src="static/tree.js"></script>
+
+    <script type="text/javascript" src="angular.treeview/angular.treeview.js"></script>
+    <script type="text/javascript" src="angucomplete/angucomplete.js"></script>
+    <link rel="stylesheet" type="text/css" href="angular.treeview/css/angular.treeview.css">
+    <link rel="stylesheet" type="text/css" href="angucomplete/angucomplete.css">
+
+    <script>
+        const baseUrl = 'http://localhost:3000';
+
+        const elasticBaseUrl = 'elastic-search';
+
+        async function getSuggestion(keyword) {
+
+            //const elasticBaseUrl = 'http://localhost:9200';
+
+            var elasticQuery = {
+                "suggest": {
+                    "my_suggestion": {
+                        "prefix": keyword,
+                        "completion": {
+                            "field": "product_suggest"
+                        }
+                    }
+                }
+            };
+
+
+            let json = await axios.post(elasticBaseUrl + "/smart-tv/_search", elasticQuery);
+            return json;
+        }
+
+        async function getBrandFacet(keyword, offset) {
+
+            //const elasticBaseUrl = 'http://localhost:9200';
+
+            var elasticQuery = {
+                "from": offset,
+                "query": {
+                    "match": {
+                        "text": {
+                            "query": keyword
+                        }
+                    }
+                },
+                "aggregations": {
+                    "currentprice_stats": {
+                        "stats": {
+                            "field": "currentprice",
+                        }
+                    },
+                    "by_brand": {
+                        "terms": {
+                            "field": "brand",
+                            "size": 5
+                        }
+                    }
+                }
+            };
+
+
+            let json = await axios.post(elasticBaseUrl + "/smart-tv/_search", elasticQuery);
+            return json;
+        }
+
+        async function getCustomerRatingFacet() {
+
+            //const elasticBaseUrl = 'http://localhost:9200';
+
+            var elasticQuery = {
+                "size": 0,
+                "query": {
+                    "match_all": {}
+                },
+                "aggregations": {
+                    "currentprice_stats": {
+                        "stats": {
+                            "field": "currentprice",
+                        }
+                    },
+                    "customerrating_ranges": {
+                        "range": {
+                            "field": "customerrating",
+                            "ranges": [
+                                { "from": 1, "to": 5.0 },
+                                { "from": 2.0, "to": 5.0 },
+                                { "from": 3.0, "to": 5.0 },
+                                { "from": 4.0, "to": 5.0 },
+                                { "from": 5.0, "to": 6.0 }
+                            ]
+                        }
+                    }
+                }
+            };
+
+
+            let json = await axios.post(elasticBaseUrl + "/smart-tv/_search", elasticQuery);
+            return json;
+        }
+
+        async function getPriceRangeFacet() {
+
+            //const elasticBaseUrl = 'http://localhost:9200';
+
+            var elasticQuery = {
+                "size": 0,
+                "query": {
+                    "match_all": {}
+                },
+                "aggregations": {
+                    "currentprice_stats": {
+                        "stats": {
+                            "field": "currentprice",
+                        }
+                    }
+                }
+            };
+
+
+            let json = await axios.post(elasticBaseUrl + "/smart-tv/_search", elasticQuery);
+            return json;
+        }
+
+
+        /*
+
+        
+
+        */
+
+
+        async function getByBrands(keyword, offset, brands, rating, priceRange) {
+
+            console.log("keyword", keyword);
+            console.log("offset", offset);
+            console.log("brands", brands);
+            console.log("rating", rating);
+            console.log("priceRange", priceRange);
+            //const elasticBaseUrl = 'http://localhost:9200';
+
+            var elasticQueryTemplate = {
+                "from": offset,
+
+                "sort": [
+                    { "currentprice": "desc" },
+                    "_score"
+                ],
+                /*
+                "sort": [                  
+                    {
+                        "_script": {
+                            "type": "number",
+                            "script": {
+                                "source": "Boolean.compare(params.ids.contains(doc['id'].value),false);",
+                                "lang": "painless",
+                                "params": {
+                                    "ids": [
+                                        "4659559", "4257818"
+                                    ]
+                                }
+                            },
+                            "order": "desc"
+                        }
+                    },
+                    {
+                        "_score": {
+                            "order": "desc"
+                        }
+                    }
+                ],
+                */
+
+                "query": {
+                    "function_score": {
+                        "query": {
+                            "bool": {
+                                "must": {
+                                    "match_all": {}
+                                },
+                                "filter": []
+                            }
+                        },
+
+                        "script_score": {
+                            "script": "_score * doc['customerrating'].value"
+                        }
+                    },
+
+                },
+
+                "aggregations": {
+                    "by_category_name": {
+                        "nested": {
+                            "path": "category_list"
+                        },
+                        "aggs": {
+                            "by_category": {
+                                "terms": {
+                                    "field": "category_list.categoryName",
+                                    "size": 1000
+                                }
+                            }
+                        }
+                    },
+                    "customerrating_ranges": {
+                        "range": {
+                            "field": "customerrating",
+                            "ranges": [
+                                { "from": 1, "to": 5.0 },
+                                { "from": 2.0, "to": 5.0 },
+                                { "from": 3.0, "to": 5.0 },
+                                { "from": 4.0, "to": 5.0 },
+                                { "from": 5.0, "to": 6.0 }
+                            ]
+                        }
+                    },
+                    "currentprice_stats": {
+                        "stats": {
+                            "field": "currentprice",
+                        }
+                    },
+                    "by_brand": {
+                        "terms": {
+                            "field": "brand",
+                            "size": 5
+                        }
+                    }
+                }
+            };
+
+            if (!(keyword === null || keyword === "")) {
+
+                elasticQueryTemplate.query.function_score.query.bool.must = {
+                    "match": {
+                        "shortlabel": keyword
+                    }
+                };
+                /*
+                elasticQueryTemplate.query.bool.match = {
+                        "shortlabel": keyword
+                };
+                */
+            }
+
+            if (brands.length !== 0) {
+                elasticQueryTemplate.query.function_score.query.bool.filter.push({
+                    "terms": { "brand": brands.map(item => item.key) }
+                });
+                //delete elasticQueryTemplate.query.bool.filter;
+            }
+
+            if (rating !== null) {
+                elasticQueryTemplate.query.function_score.query.bool.filter.push({
+                    "range": {
+                        "customerrating": {
+                            "gte": rating,
+                            "lte": 6
+                        }
+                    }
+                });
+            }
+
+            /*
+            "sort" : [        
+          { "currentprice" : order }
+        ],
+            */
+
+            if (priceRange._ignore) {
+
+            } else {
+                if (priceRange !== null) {
+                    elasticQueryTemplate.sort = [
+                        { "currentprice": "asc" }
+                    ];
+                    elasticQueryTemplate.query.bool.filter.push({
+                        "range": {
+                            "currentprice": {
+                                "gte": priceRange.minValue,
+                                "lte": priceRange.maxValue
+                            }
+                        }
+                    });
+                }
+
+            }
+
+
+
+
+
+            console.log("query dsl:" + JSON.stringify(elasticQueryTemplate));
+            let json = await axios.post(elasticBaseUrl + "/smart-tv/_search", elasticQueryTemplate);
+            return json;
+        }
+
+        async function search(_searchTerm, _offset) {
+            let json = await axios.get(baseUrl + "/search", { params: { term: _searchTerm, offset: _offset } });
+            return json;
+        }
+
+
+        async function searchCurrentprice(_min, _max, _order, _offset) {
+            let json = await axios.get(baseUrl + "/search-currentprice", { params: { min: _min, max: _max, order: _order, offset: _offset } });
+            return json;
+        }
+
+        async function getCategoryTree() {
+            let json = await axios.get("/data/groups.json");
+            return json;
+        }
+
+
+
+        angular.module('checkboxExample', ['star-rating', 'rzModule', 'angularTreeview', 'angucomplete']).controller('ExampleController', ['$scope', '$timeout', '$window', '$q', function ($scope, $timeout, $window, $q) {
+
+            console.log($window.Tree);
+            console.log($window.Node);
+
+            $scope.categoryTree = new $window.Tree('root', 0);
+
+
+
+            $scope.sortingOrder = "desc";//"desc"
+
+            $scope.selectedBrands = [];
+            $scope.selectedRating = null;
+
+            /*
+
+                    { "from": 1, "to": 5.0 },
+                    { "from": 2.0, "to": 5.0 },
+                    { "from": 3.0, "to": 5.0 },
+                    { "from": 4.0, "to": 5.0 },
+                    { "from": 5.0, "to": 6.0 }
+
+            */
+
+            $scope.ratings = [
+                {
+                    "id": "12341",
+                    "value": 1,
+                    "doc_count": 0,
+                    "selected": false
+                },
+                {
+                    "id": "12342",
+                    "value": 2,
+                    "doc_count": 0,
+                    "selected": false
+                },
+                {
+                    "id": "12343",
+                    "value": 3,
+                    "doc_count": 0,
+                    "selected": false
+                },
+                {
+                    "id": "12344",
+                    "value": 4,
+                    "doc_count": 0,
+                    "selected": false
+                },
+                {
+                    "id": "12344",
+                    "value": 5,
+                    "doc_count": 0,
+                    "selected": false
+                }
+            ];
+
+            /*
+            $scope.priceSlider = {
+                value: 200,
+                options: {
+                    floor: 0,
+                    ceil: 500
+                }
+            };
+            */
+
+            $scope.priceSlider = {
+                _ignore: true,
+                minValue: 0,
+                maxValue: 100,
+                options: {
+                    floor: 0,
+                    ceil: 5000,
+                    /*
+                    step: 1,
+                    minRange: 10,
+                    maxRange: 50,
+                    */
+                    noSwitching: true,
+                    onChange: function (sliderId, modelValue, highValue, pointerType) {
+                        console.log("on change modelValue." + modelValue + " " + "highValue:" + highValue);
+                        $scope.priceSlider._ignore = false;
+                        $scope.userAction = "price-range";
+                        $scope.search();
+                    }
+                }
+            };
+
+            $scope.selectedRating = {
+                from: null
+            };
+
+
+            $scope.getBrandWithName = function (brandName) {
+                console.log("getBrandWithName", brandName, $scope.brands.filter(item => item.key === brandName));
+
+                return $scope.brands.filter(item => item.key === brandName)[0];
+            }
+
+
+            $scope.newSearch = function () {
+                console.log("newSearch");
+                $scope.searchOffset = 0;
+                $scope.search();
+
+            }
+
+            $scope.toggleRatingSelection = function (rating) {
+                console.log("toggleRatingSelection", rating);
+
+                $scope.searchOffset = 0;
+                $scope.search();
+
+            }
+
+            $scope.userAction = "NONE";
+
+            $scope.toggleSelection = function (_selectedBrand) {
+                console.log("toggleSelection", _selectedBrand);
+                $scope.searchOffset = 0;
+                _selectedBrand.isSelected = !_selectedBrand.isSelected;
+                if (_selectedBrand.isSelected === true) {
+                    $scope.selectedBrands.push(_selectedBrand);
+                }
+                $scope.selectedBrands = $scope.selectedBrands.filter(item => item.isSelected);
+                $scope.userAction = "brand-change";
+                $scope.search();
+
+            }
+
+            $scope.searchOffset = 0;
+            $scope.searchKey = "";
+
+
+
+
+
+            $scope.categoryTree = {};
+            $scope.buildTree = function (path, doc_count) {
+                console.log("buildTree:", path, doc_count);
+                paths = path.split("|");
+                console.log(paths);
+                $scope.getNode(paths.slice(1, paths.length));
+            }
+
+            $scope.getNode = function (paths) {
+                console.log("getNode", paths);
+                if (paths.length === 1) {
+                    rootNode = paths[0];
+                    console.log("rootNode", rootNode);
+                }
+                else if (paths.length > 0) {
+                    node = paths[0];
+                    $scope.getNode(paths.slice(1, paths.length));
+                }
+            }
+
+            $scope.search = function () {
+                if ($scope.userAction === "brand-change") {
+                    $scope.priceSlider._ignore = true;
+                    $scope.priceSlider.options.floor = 0;
+                    $scope.priceSlider.options.ceil = 100;
+                }
+
+                getByBrands($scope.searchKey, $scope.searchOffset, $scope.selectedBrands, $scope.selectedRating.from, $scope.priceSlider).then(function (response) {
+                    console.log("response", response);
+                    $scope.numHits = response.data.hits.total;
+                    $scope.searchResults = response.data.hits.hits;
+
+                    if ($scope.selectedBrands.length === 0) {
+                        $scope.brands = response.data.aggregations.by_brand.buckets;
+                    }
+                    if ($scope.userAction === "brand-change") {
+                        $scope.priceSlider.options.floor = Math.floor(response.data.aggregations.currentprice_stats.min);
+                        $scope.priceSlider.options.ceil = Math.floor(response.data.aggregations.currentprice_stats.max);
+                    }
+
+
+                    console.log("getCategoryTreeCount:", response.data.aggregations.by_category_name.by_category.buckets);
+                    $scope.categoryCountData = response.data.aggregations.by_category_name.by_category.buckets;
+                    $scope.categoryCountMap = {};
+                    $scope.categoryTree = new $window.Tree('PRODUCTS#PIM', 0);
+
+                    $scope.categoryCountData.forEach(function (categoryCount) {
+                        console.log("categoryCount:", categoryCount);
+                        $scope.categoryCountMap["" + categoryCount.key] = categoryCount.doc_count;
+                        //$scope.buildTree(categoryCount.key, categoryCount.doc_count);
+                        categoryPaths = categoryCount.key.split("|");
+                        $scope.categoryTree.addPath(categoryPaths.slice(1, categoryPaths.length), categoryCount.doc_count);
+                    });
+                    console.log("$scope.categoryCountMap", $scope.categoryCountMap);
+                    $scope.categoryTree.print();
+                    /*        
+                    $scope.categoryTree.visitTree(function(node){
+                        console.log($scope.categoryCountMap);                         
+                        console.log('node',node, $scope.categoryCountMap["|"+node.data]);                         
+                    });                    
+                    */
+
+                    console.log($scope.categoryTree);
+
+                    $scope.treedata =
+                        $scope.$apply();
+                });
+
+            }
+
+
+            $scope.prevResultsPage = function () {
+                console.log("prevResultsPage:" + $scope.searchOffset);
+                if ($scope.searchOffset == 0) return;
+                $scope.searchOffset = $scope.searchOffset - 9;
+                $scope.search();
+            }
+            $scope.nextResultsPage = function () {
+                console.log("nextResultsPage :" + $scope.searchOffset + " :" + $scope.numHits);
+                if ($scope.searchOffset + $scope.searchResults.length === $scope.numHits) return;
+                $scope.searchOffset = $scope.searchOffset + 9;
+                $scope.search();
+            }
+
+            $scope.searchResults = [];
+            $scope.search();
+
+            $scope.onAutoCompleteSelction = function (selection) {
+                console.log("onAutoCompleteSelction:" + JSON.stringify(selection));
+                $scope.searchKey = selection.title;
+                $scope.searchId = selection.code;
+                $scope.search();
+            }
+            $scope.getSuggestion = function (str) {
+                var deferred = $q.defer();
+                getSuggestion(str).then(function (response) {
+                    console.log("fetchFunction response " + JSON.stringify(response.data.suggest.my_suggestion));
+                    console.log("fetchFunction response" + response.data.suggest.my_suggestion["0"].options);
+                    var suggestion = [];
+                    response.data.suggest.my_suggestion["0"].options.forEach(function (option) {
+                        console.log("option:" + JSON.stringify(option._source.displayname));
+                        suggestion.push({
+                            "name": option._source.shortlabel,
+                            "code": option._source.id
+                        });
+                    });
+                    console.log(deferred);
+                    deferred.resolve(suggestion);
+
+                    //selectedProduct
+                    $scope.searchKey = str;
+                    $scope.search();
+                });
+                return deferred.promise;
+            }
+
+
+
+        }]);
+    </script>
+</head>
+
+<body ng-app="checkboxExample" ng-controller="ExampleController">
+
+
+    <datalist id="comicstitle">
+        <option data-ng-repeat="ttl in titles" value="{{ttl}}">
+    </datalist>
+    <div id="sidebar">
+        <div class="mui-row">
+            <div class="mui-col-sm-10 mui-col-sm-offset-1">
+                <!--
+                <div class="mui--text-black-54 mui--text-body2">
+                    <h1>Key Word</h1></div>
+                
+                <div class="mui--text-black-54">
+                    <input type="text" ng-model="searchKey" ng-model-options="{ debounce: 500 }" ng-change="newSearch()">
+                </div>
+                -->
+
+                <div class="mui--text-black-54 mui--text-body2">
+                    <h1>AutoComplete</h1>
+                </div>
+                <div class="mui--text-black-54">
+                    <angucomplete id="ex1" placeholder="Search product" pause="100" selectedobject="selectedProduct" fetchfunction="getSuggestion"
+                        onselctionfunction="onAutoCompleteSelction" searchfields="name" titlefield="name" minlength="1" inputclass="form-control form-control-small"
+                    />
+
+                </div>
+
+
+                <!--
+                <div class="mui--text-black-54 mui--text-body2">
+                    <h1>Categories</h1>
+                </div>
+                <div class="mui-divider"></div>
+
+                <div class="mui--text-black-54">
+                    <div data-angular-treeview="true" data-tree-id="abc" data-tree-model="categoryTree" data-node-id="id" data-node-label="data"
+                        data-node-payload="payload" data-node-children="children">
+                    </div>
+                </div>
+                -->
+
+
+
+
+
+                <div class="mui--text-black-54 mui--text-body2">
+                    <h1>Brands</h1>
+                </div>
+                <div class="mui-divider"></div>
+
+                <div class="mui--text-black-54">
+                    <div ng-repeat="brand in brands">
+                        <!--
+                            {{brand.key}}:{{brand.doc_count}}
+                             -->
+                        <div class="action-checkbox">
+                            <input id="{{brand.key}}" type="checkbox" ng-click="toggleSelection(brand, event)" />
+                            <label for="{{brand.key}}"></label> {{brand.key}} <b>{{brand.doc_count}}</b>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="mui--text-black-54 mui--text-body2">
+                    <h1>Ratings</h1>
+                </div>
+
+                <div class="mui-divider"></div>
+                <form name="myForm" class="mui--text-black-54">
+                    <div class="mui-row" ng-repeat="rating in ratings">
+                        <div class="mui-col-md-2">
+                            <input style="margin-top: 6px" type="radio" name="selectedRatingRadioGroup" value="{{rating.value}}" ng-model="selectedRating.from"
+                                ng-change="toggleRatingSelection(rating)">
+                        </div>
+                        <div class="mui-col-md-4">
+                            <star-rating-comp space="'around'" star-type="'icon'" direction="'ltr'" read-only="true" static-color="'default'" rating=rating.value
+                                label-position="'left'"></star-rating-comp>
+                        </div>
+                        <div class="mui-col-md-4" style="padding-top: 2px; padding-left: 20px">
+                            <b> {{rating.doc_count}}</b>
+                        </div>
+                    </div>
+                    <!--            
+                        <tt>selectedRating = {{selectedRating | json}}</tt><br/>
+                        -->
+
+                </form>
+                <div class="mui--text-black-54 mui--text-body2">
+                    <h1>Price</h1>
+                </div>
+                <div class="mui-divider"></div>
+                <rzslider class="custom-slider" rz-slider-model="priceSlider.minValue" rz-slider-high="priceSlider.maxValue" rz-slider-options="priceSlider.options"></rzslider>
+
+            </div>
+        </div>
+
+
+
+    </div>
+    </div>
+    </div>
+
+
+    <div id="content" class="mui-container-fluid">
+        <div class="mui-row">
+            <div class="mui-col-sm-10 mui-col-sm-offset-1">
+                <br>
+                <br>
+                <div class="mui-panel pagination-panel">
+                    <div class="mui-container-fluid">
+                        <div class="mui-row">
+                            <div class="mui-col-md-8">
+                                <div class="mui--text-headline">
+                                    Results for '{{searchKey}}'
+                                </div>
+                                <div class="mui--text-subhead">{{ numHits }} Hits. Displaying Results {{ searchOffset }} - {{ searchOffset + 9 }} </div>
+                            </div>
+                            <div class="mui-col-md-4">
+                                <div class="mui-row">
+                                    <button class="mui-btn mui-btn--flat" ng-click="prevResultsPage()">Prev Page</button>
+                                    <button class="mui-btn mui-btn--flat" ng-click="nextResultsPage()">Next Page</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mui-panel" ng-repeat="hit in searchResults">
+                    <div class="mui--text-subhead"><img src="{{hit._source.manufacturerimage}}" alt="{{hit._source.brand}}"></div>
+                    <div class="mui--text-title" v-html="hit._source.displayname"></div>
+                    <div class="mui-divider"></div>
+                    <div class="mui--text-subhead"> {{ hit._source.shortlabel}}</div>
+                    <div class="mui--text-subhead">currentprice:<b>{{ hit._source.currentprice }}</b></div>
+                    <div class="mui--text-subhead">brand:<b>{{ hit._source.brand }}</b></div>
+                    <div class="mui--text-subhead">modelnumber:<b>{{ hit._source.modelnumber }}</b></div>
+                    <div class="mui--text-subhead">modelname:<b>{{ hit._source.modelname }}</b></div>
+                    <div class="mui--text-subhead">id:<b>{{ hit._source.id }}</b></div>
+                    <div class="mui--text-subhead">link:
+                        <a v-bind:href="''+hit._source.seoUrl+''">{{ hit._source.seoUrl }}</a>
+                    </div>
+                    <div class="mui--text-subhead">customerrating:<b>{{ hit._source.customerrating }}</b></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

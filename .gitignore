@@ -1,0 +1,17 @@
+/.gradle/
+/bin/
+/build/
+/vagrant-scripts/build/
+/data/
+/.vagrant/
+/.idea/
+/.settings/
+/.git/
+/*/smart-tvs/
+/elastic-client/bin/
+/elastic-client/settings/
+/elastic-client/.gradle/
+.classpath
+.project
+gradle.properties
+vagrant.yml

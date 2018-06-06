@@ -1,0 +1,198 @@
+GET smart-tv/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "size": 0, 
+  "aggregations": {
+      "by_brand": {
+         "terms": {"field": "brand"}
+      }
+   }
+}
+
+{
+  "took": 17,
+  "timed_out": false,
+  "_shards": {
+    "total": 5,
+    "successful": 5,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": 1768,
+    "max_score": 0,
+    "hits": []
+  },
+  "aggregations": {
+    "by_brand": {
+      "doc_count_error_upper_bound": 13,
+      "sum_other_doc_count": 533,
+      "buckets": [
+        {
+          "key": "OEHLBACH",
+          "doc_count": 519
+        },
+        {
+          "key": "MAJA",
+          "doc_count": 101
+        },
+        {
+          "key": "SAMSUNG",
+          "doc_count": 94
+        },
+        {
+          "key": "HAMA",
+          "doc_count": 86
+        },
+        {
+          "key": "SONY",
+          "doc_count": 83
+        },
+        {
+          "key": "VOGEL�S",
+          "doc_count": 78
+        },
+        {
+          "key": "YAMAHA",
+          "doc_count": 77
+        },
+        {
+          "key": "LG",
+          "doc_count": 73
+        },
+        {
+          "key": "LOEWE",
+          "doc_count": 66
+        },
+        {
+          "key": "PANASONIC",
+          "doc_count": 58
+        }
+      ]
+    }
+  }
+}
+
+
+GET smart-tv/_search
+{
+  "query": {
+    "bool": {
+       "must": { "match": {
+         "text": "oled"
+       } },
+        "filter" : {
+                "terms" : { "brand" : ["SONY", "SAMSUNG"]}
+            }
+    }
+  }
+}
+
+   "constant_score" : {
+            "filter" : {
+                "terms" : { 
+                    "brand" : ["SONY", "SAMSUNG"]
+                }
+            }
+        }
+
+
+
+GET smart-tv
+POST smart-tv/_analyze
+{
+  "tokenizer": "my_tokenizer",
+  "text": "|Audiokabel|TV-Zubehör|TV, Heimkino & Zubehör|TV + Audio|PRODUCTS#PIM"
+}
+DELETE smart-tv
+PUT smart-tv
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "my_analyzer": {
+          "tokenizer": "my_tokenizer"
+        }
+      },
+      "tokenizer": {
+        "my_tokenizer": {
+          "type": "path_hierarchy",
+          "delimiter": "|",
+          "replacement": "/",
+          "reverse": true
+        }
+      }
+    }
+  }
+}
+
+GET smart-tv
+POST smart-tv/_analyze
+{
+  "tokenizer": "my_tokenizer",
+  "text": "|Audiokabel|TV-Zubehör|TV, Heimkino & Zubehör|TV + Audio|PRODUCTS#PIM"
+}
+DELETE smart-tv
+PUT smart-tv
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "my_analyzer": {
+          "tokenizer": "my_tokenizer"
+        }
+      },
+      "tokenizer": {
+        "my_tokenizer": {
+          "type": "path_hierarchy",
+          "delimiter": "|",
+          "replacement": "/",
+          "reverse": true
+        }
+      }
+    }
+  }
+}
+
+GET /smart-tv/_search
+{
+    "query" : {
+        "term" : { "categories" : "Smart TV/Fernseher/TV, Heimkino & Zubehör/TV + Audio/PRODUCTS#PIM" }
+    }
+}
+
+GET /_search?q=categories:TV + Audio/PRODUCTS#PIM
+
+GET /smart-tv/_search
+{
+    "query" : {
+        "match": {
+          "text": "Fernseher/TV, Heimkino & Zubehör/TV + Audio/PRODUCTS#PIM"
+        }
+    }
+}
+
+GET /smart-tv/_search
+{
+  "size": 1,
+  "query": {
+    "match_all": {}
+  },
+  "aggregations": {
+    "by_category_name": {
+      "nested": {
+        "path": "category_list"
+      },
+      "aggs": {
+        "by_brand": {
+          "terms": {
+            "field": "category_list.categoryName",
+            "size": 5
+          }
+        }
+      }
+    }
+  }
+}
