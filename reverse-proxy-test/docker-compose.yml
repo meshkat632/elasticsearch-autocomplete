@@ -12,8 +12,8 @@ services:
      - ES_HOST=elasticsearch
      - PORT=3000
     volumes:
-      - ./smart-tvs:/usr/src/app/smart-tvs
-      - ./sample-data:/usr/src/app/sample-data
+      #- ./smart-tvs:/usr/src/app/smart-tvs
+      #- ./sample-data:/usr/src/app/sample-data
   reverseproxy: # Nginx Server For Frontend App
     container_name: gs-reverseproxy
     image: nginx
