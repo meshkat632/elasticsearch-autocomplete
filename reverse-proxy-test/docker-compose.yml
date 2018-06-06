@@ -22,6 +22,8 @@ services:
     ports:      
       - "80:80"
     restart: always
+    depends_on:     
+      - api
   frontend: # Nginx Server For Frontend App
     container_name: gs-frontend
     image: nginx

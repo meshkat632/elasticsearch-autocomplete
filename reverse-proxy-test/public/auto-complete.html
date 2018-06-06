@@ -136,19 +136,13 @@
                         "text": keyword
                     }
                 }
-                ] ;
-                /*
-                elasticQueryTemplate.query.bool.match = {
-                        "shortlabel": keyword
-                };
-                */
+                ] ;                
             }
 
             if (brands.length !== 0) {
                 elasticQueryTemplate.query.function_score.query.bool.filter.push({
                     "terms": { "brand": brands.map(item => item.key) }
-                });
-                //delete elasticQueryTemplate.query.bool.filter;
+                });                
             }
 
             if (rating !== null) {
