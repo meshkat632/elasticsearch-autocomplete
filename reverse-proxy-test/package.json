@@ -4,11 +4,7 @@
   "scripts": {
     "start": "node --inspect=0.0.0.0:9229 server/app.js"
   },  
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/triestpa/guttenberg-search/issues"
-  },
-  "homepage": "https://github.com/triestpa/guttenberg-search#readme",
+  "license": "MIT", 
   "dependencies": {
     "elasticsearch": "13.3.1",
     "joi": "13.0.1",
