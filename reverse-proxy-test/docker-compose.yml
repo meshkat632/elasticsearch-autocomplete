@@ -11,7 +11,7 @@ services:
      - NODE_ENV=local
      - ES_HOST=elasticsearch
      - PORT=3000
-    volumes:
+    #volumes:
       #- ./smart-tvs:/usr/src/app/smart-tvs
       #- ./sample-data:/usr/src/app/sample-data
   reverseproxy: # Nginx Server For Frontend App
