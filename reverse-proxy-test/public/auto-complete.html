@@ -31,7 +31,7 @@
     <script>        
         const elasticBaseUrl = 'elastic-search';
 
-        async function getSuggestion(keyword) {           
+        async function getSuggestion(keyword) {
 
             var elasticQuery = {
                 "suggest": {
@@ -47,7 +47,7 @@
 
             let json = await axios.post(elasticBaseUrl + "/smart-tv/_search", elasticQuery);
             return json;
-        }    
+        }
 
 
         async function search(keyword, offset, brands, rating, priceRange) {
@@ -56,7 +56,7 @@
             console.log("offset", offset);
             console.log("brands", brands);
             console.log("rating", rating);
-            console.log("priceRange", priceRange);            
+            console.log("priceRange", priceRange);
 
             var elasticQueryTemplate = {
                 "from": offset,
@@ -64,7 +64,7 @@
                 "sort": [
                     { "currentprice": "desc" },
                     "_score"
-                ],                
+                ],
                 "query": {
                     "function_score": {
                         "query": {
@@ -124,12 +124,19 @@
             };
 
             if (!(keyword === null || keyword === "")) {
-
-                elasticQueryTemplate.query.function_score.query.bool.must = {
+                delete elasticQueryTemplate.query.function_score.query.bool.must;
+                elasticQueryTemplate.query.function_score.query.bool.should =[ 
+                {
                     "match": {
                         "shortlabel": keyword
                     }
-                };
+                },
+                {
+                    "match": {
+                        "text": keyword
+                    }
+                }
+                ] ;
                 /*
                 elasticQueryTemplate.query.bool.match = {
                         "shortlabel": keyword
@@ -153,7 +160,7 @@
                         }
                     }
                 });
-            } 
+            }
             if (priceRange._ignore) {
 
             } else {
@@ -213,7 +220,7 @@
 
             $scope.selectedBrands = [];
             $scope.selectedRating = null;
- 
+
             $scope.ratings = [
                 {
                     "id": "12341",
@@ -370,7 +377,7 @@
 
 
                     //console.log("response", response.data.aggregations.customerrating_ranges.buckets);
-                    $scope.ratings = response.data.aggregations.customerrating_ranges.buckets;                    
+                    $scope.ratings = response.data.aggregations.customerrating_ranges.buckets;
 
 
 
@@ -379,12 +386,12 @@
                     $scope.categoryCountMap = {};
                     $scope.categoryTree = new $window.Tree('PRODUCTS#PIM', 0);
 
-                    $scope.categoryCountData.forEach(function (categoryCount) {                    
+                    $scope.categoryCountData.forEach(function (categoryCount) {
                         $scope.categoryCountMap["" + categoryCount.key] = categoryCount.doc_count;
                         categoryPaths = categoryCount.key.split("|");
                         $scope.categoryTree.addPath(categoryPaths.slice(1, categoryPaths.length), categoryCount.doc_count);
                     });
-                    
+
                     //$scope.categoryTree.print();
 
                     $scope.$apply();
@@ -452,15 +459,8 @@
     </datalist>
     <div id="sidebar">
         <div class="mui-row">
-            <div class="mui-col-sm-10 mui-col-sm-offset-1">
-                <!--
-                <div class="mui--text-black-54 mui--text-body2">
-                    <h1>Key Word</h1></div>
+            <div class="mui-col-sm-10 mui-col-sm-offset-1" >
                 
-                <div class="mui--text-black-54">
-                    <input type="text" ng-model="searchKey" ng-model-options="{ debounce: 500 }" ng-change="newSearch()">
-                </div>
-                -->
 
                 <div class="mui--text-black-54 mui--text-body2">
                     <h1>AutoComplete</h1>
@@ -484,7 +484,8 @@
                              -->
                         <div class="action-checkbox">
                             <input id="{{brand.key}}" type="checkbox" ng-click="toggleSelection(brand, event)" />
-                            <label for="{{brand.key}}"></label> {{brand.key}} <b>{{brand.doc_count}}</b>
+                            <label for="{{brand.key}}"></label> {{brand.key}}
+                            <b>{{brand.doc_count}}</b>
                         </div>
 
                     </div>
@@ -519,18 +520,18 @@
                 </div>
                 <div class="mui-divider"></div>
                 <rzslider class="custom-slider" rz-slider-model="priceSlider.minValue" rz-slider-high="priceSlider.maxValue" rz-slider-options="priceSlider.options"></rzslider>
-                
+
                 <div class="mui--text-black-54 mui--text-body2">
                     <h1>Categories</h1>
                 </div>
                 <div class="mui-divider"></div>
 
-                <div class="mui--text-black-54">
+                <div class="mui--text-black-54" style="max-height: 900px; border: 0px solid red; overflow:scroll;">
                     <div data-angular-treeview="true" data-tree-id="abc" data-tree-model="categoryTree" data-node-id="id" data-node-label="data"
                         data-node-payload="payload" data-node-children="children">
                     </div>
                 </div>
-                
+
             </div>
         </div>
 
@@ -566,21 +567,35 @@
                 </div>
 
                 <div class="mui-panel" ng-repeat="hit in searchResults">
-                    <div class="mui--text-subhead"><img src="{{hit._source.manufacturerimage}}" alt="{{hit._source.brand}}"></div>
+                    <div class="mui--text-subhead">
+                        <img src="{{hit._source.manufacturerimage}}" alt="{{hit._source.brand}}">
+                    </div>
                     <div class="mui--text-title" v-html="hit._source.displayname"></div>
                     <div class="mui-divider"></div>
                     <div class="mui--text-subhead"> {{ hit._source.shortlabel}}</div>
-                    <div class="mui--text-subhead">currentprice:<b>{{ hit._source.currentprice }}</b></div>
-                    <div class="mui--text-subhead">brand:<b>{{ hit._source.brand }}</b></div>
-                    <div class="mui--text-subhead">modelnumber:<b>{{ hit._source.modelnumber }}</b></div>
-                    <div class="mui--text-subhead">modelname:<b>{{ hit._source.modelname }}</b></div>
-                    <div class="mui--text-subhead">id:<b>{{ hit._source.id }}</b></div>                    
-                    
+                    <div class="mui--text-subhead">currentprice:
+                        <b>{{ hit._source.currentprice }}</b>
+                    </div>
+                    <div class="mui--text-subhead">brand:
+                        <b>{{ hit._source.brand }}</b>
+                    </div>
+                    <div class="mui--text-subhead">modelnumber:
+                        <b>{{ hit._source.modelnumber }}</b>
+                    </div>
+                    <div class="mui--text-subhead">modelname:
+                        <b>{{ hit._source.modelname }}</b>
+                    </div>
+                    <div class="mui--text-subhead">id:
+                        <b>{{ hit._source.id }}</b>
+                    </div>
+
                     <div class="mui--text-subhead">link:
                         <!--<a v-bind:href="''+hit._source.seoUrl.substring(2, hit._source.seoUrl.length)+''">{{ hit._source.seoUrl.substring(2, hit._source.seoUrl.length) }}</a>-->
                         <a ng-href="http:{{hit._source.seoUrl}}" target="_blank">{{ hit._source.seoUrl.substring(2, hit._source.seoUrl.length) }}</a>
                     </div>
-                    <div class="mui--text-subhead">customerrating:<b>{{ hit._source.customerrating }}</b></div>
+                    <div class="mui--text-subhead">customerrating:
+                        <b>{{ hit._source.customerrating }}</b>
+                    </div>
                 </div>
             </div>
         </div>
