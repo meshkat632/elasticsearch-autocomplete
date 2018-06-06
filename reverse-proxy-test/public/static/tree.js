@@ -131,7 +131,7 @@ Tree.prototype.print = function () {
 }
 
 function _print (node, space) {
-    console.log(getSpace(space) ,node.data);                                
+    //console.log(getSpace(space) ,node.data);                                
     node.children.forEach(function(child) {
         _print(child, space+1);
     });
@@ -151,7 +151,7 @@ Tree.prototype.visitTree = function (callback) {
 
 
 Tree.prototype.addPath = function (paths, doc_count) {    
-    console.log("paths:"+paths+" doc_count:"+doc_count);
+    //console.log("paths:"+paths+" doc_count:"+doc_count);
     var tree = this;    
     if(paths.length === 1) {
         var root = tree.findNode(paths[0]);                

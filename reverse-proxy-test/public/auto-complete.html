@@ -28,14 +28,10 @@
     <link rel="stylesheet" type="text/css" href="angular.treeview/css/angular.treeview.css">
     <link rel="stylesheet" type="text/css" href="angucomplete/angucomplete.css">
 
-    <script>
-        const baseUrl = 'http://localhost:3000';
-
+    <script>        
         const elasticBaseUrl = 'elastic-search';
 
-        async function getSuggestion(keyword) {
-
-            //const elasticBaseUrl = 'http://localhost:9200';
+        async function getSuggestion(keyword) {           
 
             var elasticQuery = {
                 "suggest": {
@@ -51,115 +47,16 @@
 
             let json = await axios.post(elasticBaseUrl + "/smart-tv/_search", elasticQuery);
             return json;
-        }
-
-        async function getBrandFacet(keyword, offset) {
-
-            //const elasticBaseUrl = 'http://localhost:9200';
-
-            var elasticQuery = {
-                "from": offset,
-                "query": {
-                    "match": {
-                        "text": {
-                            "query": keyword
-                        }
-                    }
-                },
-                "aggregations": {
-                    "currentprice_stats": {
-                        "stats": {
-                            "field": "currentprice",
-                        }
-                    },
-                    "by_brand": {
-                        "terms": {
-                            "field": "brand",
-                            "size": 5
-                        }
-                    }
-                }
-            };
+        }    
 
 
-            let json = await axios.post(elasticBaseUrl + "/smart-tv/_search", elasticQuery);
-            return json;
-        }
-
-        async function getCustomerRatingFacet() {
-
-            //const elasticBaseUrl = 'http://localhost:9200';
-
-            var elasticQuery = {
-                "size": 0,
-                "query": {
-                    "match_all": {}
-                },
-                "aggregations": {
-                    "currentprice_stats": {
-                        "stats": {
-                            "field": "currentprice",
-                        }
-                    },
-                    "customerrating_ranges": {
-                        "range": {
-                            "field": "customerrating",
-                            "ranges": [
-                                { "from": 1, "to": 5.0 },
-                                { "from": 2.0, "to": 5.0 },
-                                { "from": 3.0, "to": 5.0 },
-                                { "from": 4.0, "to": 5.0 },
-                                { "from": 5.0, "to": 6.0 }
-                            ]
-                        }
-                    }
-                }
-            };
-
-
-            let json = await axios.post(elasticBaseUrl + "/smart-tv/_search", elasticQuery);
-            return json;
-        }
-
-        async function getPriceRangeFacet() {
-
-            //const elasticBaseUrl = 'http://localhost:9200';
-
-            var elasticQuery = {
-                "size": 0,
-                "query": {
-                    "match_all": {}
-                },
-                "aggregations": {
-                    "currentprice_stats": {
-                        "stats": {
-                            "field": "currentprice",
-                        }
-                    }
-                }
-            };
-
-
-            let json = await axios.post(elasticBaseUrl + "/smart-tv/_search", elasticQuery);
-            return json;
-        }
-
-
-        /*
-
-        
-
-        */
-
-
-        async function getByBrands(keyword, offset, brands, rating, priceRange) {
+        async function search(keyword, offset, brands, rating, priceRange) {
 
             console.log("keyword", keyword);
             console.log("offset", offset);
             console.log("brands", brands);
             console.log("rating", rating);
-            console.log("priceRange", priceRange);
-            //const elasticBaseUrl = 'http://localhost:9200';
+            console.log("priceRange", priceRange);            
 
             var elasticQueryTemplate = {
                 "from": offset,
@@ -167,32 +64,7 @@
                 "sort": [
                     { "currentprice": "desc" },
                     "_score"
-                ],
-                /*
-                "sort": [                  
-                    {
-                        "_script": {
-                            "type": "number",
-                            "script": {
-                                "source": "Boolean.compare(params.ids.contains(doc['id'].value),false);",
-                                "lang": "painless",
-                                "params": {
-                                    "ids": [
-                                        "4659559", "4257818"
-                                    ]
-                                }
-                            },
-                            "order": "desc"
-                        }
-                    },
-                    {
-                        "_score": {
-                            "order": "desc"
-                        }
-                    }
-                ],
-                */
-
+                ],                
                 "query": {
                     "function_score": {
                         "query": {
@@ -281,14 +153,7 @@
                         }
                     }
                 });
-            }
-
-            /*
-            "sort" : [        
-          { "currentprice" : order }
-        ],
-            */
-
+            } 
             if (priceRange._ignore) {
 
             } else {
@@ -296,7 +161,7 @@
                     elasticQueryTemplate.sort = [
                         { "currentprice": "asc" }
                     ];
-                    elasticQueryTemplate.query.bool.filter.push({
+                    elasticQueryTemplate.query.function_score.query.bool.filter.push({
                         "range": {
                             "currentprice": {
                                 "gte": priceRange.minValue,
@@ -317,6 +182,7 @@
             return json;
         }
 
+        /*
         async function search(_searchTerm, _offset) {
             let json = await axios.get(baseUrl + "/search", { params: { term: _searchTerm, offset: _offset } });
             return json;
@@ -327,6 +193,7 @@
             let json = await axios.get(baseUrl + "/search-currentprice", { params: { min: _min, max: _max, order: _order, offset: _offset } });
             return json;
         }
+        */
 
         async function getCategoryTree() {
             let json = await axios.get("/data/groups.json");
@@ -340,25 +207,13 @@
             console.log($window.Tree);
             console.log($window.Node);
 
-            $scope.categoryTree = new $window.Tree('root', 0);
-
-
+            //$scope.categoryTree = new $window.Tree('root', 0);
 
             $scope.sortingOrder = "desc";//"desc"
 
             $scope.selectedBrands = [];
             $scope.selectedRating = null;
-
-            /*
-
-                    { "from": 1, "to": 5.0 },
-                    { "from": 2.0, "to": 5.0 },
-                    { "from": 3.0, "to": 5.0 },
-                    { "from": 4.0, "to": 5.0 },
-                    { "from": 5.0, "to": 6.0 }
-
-            */
-
+ 
             $scope.ratings = [
                 {
                     "id": "12341",
@@ -500,7 +355,7 @@
                     $scope.priceSlider.options.ceil = 100;
                 }
 
-                getByBrands($scope.searchKey, $scope.searchOffset, $scope.selectedBrands, $scope.selectedRating.from, $scope.priceSlider).then(function (response) {
+                search($scope.searchKey, $scope.searchOffset, $scope.selectedBrands, $scope.selectedRating.from, $scope.priceSlider).then(function (response) {
                     console.log("response", response);
                     $scope.numHits = response.data.hits.total;
                     $scope.searchResults = response.data.hits.hits;
@@ -514,31 +369,25 @@
                     }
 
 
-                    console.log("getCategoryTreeCount:", response.data.aggregations.by_category_name.by_category.buckets);
+                    //console.log("response", response.data.aggregations.customerrating_ranges.buckets);
+                    $scope.ratings = response.data.aggregations.customerrating_ranges.buckets;                    
+
+
+
+                    //console.log("getCategoryTreeCount:", response.data.aggregations.by_category_name.by_category.buckets);
                     $scope.categoryCountData = response.data.aggregations.by_category_name.by_category.buckets;
                     $scope.categoryCountMap = {};
                     $scope.categoryTree = new $window.Tree('PRODUCTS#PIM', 0);
 
-                    $scope.categoryCountData.forEach(function (categoryCount) {
-                        console.log("categoryCount:", categoryCount);
+                    $scope.categoryCountData.forEach(function (categoryCount) {                    
                         $scope.categoryCountMap["" + categoryCount.key] = categoryCount.doc_count;
-                        //$scope.buildTree(categoryCount.key, categoryCount.doc_count);
                         categoryPaths = categoryCount.key.split("|");
                         $scope.categoryTree.addPath(categoryPaths.slice(1, categoryPaths.length), categoryCount.doc_count);
                     });
-                    console.log("$scope.categoryCountMap", $scope.categoryCountMap);
-                    $scope.categoryTree.print();
-                    /*        
-                    $scope.categoryTree.visitTree(function(node){
-                        console.log($scope.categoryCountMap);                         
-                        console.log('node',node, $scope.categoryCountMap["|"+node.data]);                         
-                    });                    
-                    */
+                    
+                    //$scope.categoryTree.print();
 
-                    console.log($scope.categoryTree);
-
-                    $scope.treedata =
-                        $scope.$apply();
+                    $scope.$apply();
                 });
 
             }
@@ -623,24 +472,6 @@
 
                 </div>
 
-
-                <!--
-                <div class="mui--text-black-54 mui--text-body2">
-                    <h1>Categories</h1>
-                </div>
-                <div class="mui-divider"></div>
-
-                <div class="mui--text-black-54">
-                    <div data-angular-treeview="true" data-tree-id="abc" data-tree-model="categoryTree" data-node-id="id" data-node-label="data"
-                        data-node-payload="payload" data-node-children="children">
-                    </div>
-                </div>
-                -->
-
-
-
-
-
                 <div class="mui--text-black-54 mui--text-body2">
                     <h1>Brands</h1>
                 </div>
@@ -667,11 +498,11 @@
                 <form name="myForm" class="mui--text-black-54">
                     <div class="mui-row" ng-repeat="rating in ratings">
                         <div class="mui-col-md-2">
-                            <input style="margin-top: 6px" type="radio" name="selectedRatingRadioGroup" value="{{rating.value}}" ng-model="selectedRating.from"
+                            <input style="margin-top: 6px" type="radio" name="selectedRatingRadioGroup" value="{{rating.from}}" ng-model="selectedRating.from"
                                 ng-change="toggleRatingSelection(rating)">
                         </div>
                         <div class="mui-col-md-4">
-                            <star-rating-comp space="'around'" star-type="'icon'" direction="'ltr'" read-only="true" static-color="'default'" rating=rating.value
+                            <star-rating-comp space="'around'" star-type="'icon'" direction="'ltr'" read-only="true" static-color="'default'" rating=rating.from
                                 label-position="'left'"></star-rating-comp>
                         </div>
                         <div class="mui-col-md-4" style="padding-top: 2px; padding-left: 20px">
@@ -688,7 +519,18 @@
                 </div>
                 <div class="mui-divider"></div>
                 <rzslider class="custom-slider" rz-slider-model="priceSlider.minValue" rz-slider-high="priceSlider.maxValue" rz-slider-options="priceSlider.options"></rzslider>
+                
+                <div class="mui--text-black-54 mui--text-body2">
+                    <h1>Categories</h1>
+                </div>
+                <div class="mui-divider"></div>
 
+                <div class="mui--text-black-54">
+                    <div data-angular-treeview="true" data-tree-id="abc" data-tree-model="categoryTree" data-node-id="id" data-node-label="data"
+                        data-node-payload="payload" data-node-children="children">
+                    </div>
+                </div>
+                
             </div>
         </div>
 
@@ -732,9 +574,11 @@
                     <div class="mui--text-subhead">brand:<b>{{ hit._source.brand }}</b></div>
                     <div class="mui--text-subhead">modelnumber:<b>{{ hit._source.modelnumber }}</b></div>
                     <div class="mui--text-subhead">modelname:<b>{{ hit._source.modelname }}</b></div>
-                    <div class="mui--text-subhead">id:<b>{{ hit._source.id }}</b></div>
+                    <div class="mui--text-subhead">id:<b>{{ hit._source.id }}</b></div>                    
+                    
                     <div class="mui--text-subhead">link:
-                        <a v-bind:href="''+hit._source.seoUrl+''">{{ hit._source.seoUrl }}</a>
+                        <!--<a v-bind:href="''+hit._source.seoUrl.substring(2, hit._source.seoUrl.length)+''">{{ hit._source.seoUrl.substring(2, hit._source.seoUrl.length) }}</a>-->
+                        <a ng-href="http:{{hit._source.seoUrl}}" target="_blank">{{ hit._source.seoUrl.substring(2, hit._source.seoUrl.length) }}</a>
                     </div>
                     <div class="mui--text-subhead">customerrating:<b>{{ hit._source.customerrating }}</b></div>
                 </div>
