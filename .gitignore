@@ -8,6 +8,7 @@
 /.settings/
 /.git/
 /*/smart-tvs/
+/*/node_modules/
 /elastic-client/bin/
 /elastic-client/settings/
 /elastic-client/.gradle/
